@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Design Challenge Generator</title>
+<style>
+  :root {
+    --red: #A6192E;
+    --ink: #000000;
+    --paper: #FFFFFF;
+    --muted: #555555;
+    --line: #D9D9D9;
+    --soft: #F6EEEF;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --red: #E0566B; --ink: #FFFFFF; --paper: #141414; --muted: #BBBBBB; --line: #3A3A3A; --soft: #2A1B1E;
+    }
+  }
+  :root[data-theme="dark"] {
+    --red: #E0566B; --ink: #FFFFFF; --paper: #141414; --muted: #BBBBBB; --line: #3A3A3A; --soft: #2A1B1E;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: inherit; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: Arial, "Proxima Nova", Helvetica, sans-serif;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 20px 16px 24px; }
+
+  /* The ruler: the one memorable thing */
+  .ruler {
+    height: 34px; border: 2px solid var(--ink); border-bottom: none;
+    background:
+      repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 40px) 0 0 / 100% 22px no-repeat,
+      repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 20px) 0 0 / 100% 14px no-repeat,
+      repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 10px) 0 0 / 100% 8px no-repeat,
+      var(--paper);
+    position: relative;
+  }
+  .card { border: 2px solid var(--ink); padding: 22px 22px 20px; background: var(--paper); }
+  .mode {
+    display: inline-block; background: var(--red); color: #FFFFFF;
+    font-weight: bold; font-size: 14px; padding: 4px 10px; margin-bottom: 14px;
+  }
+  .challenge { font-size: clamp(22px, 4.6vw, 30px); font-weight: bold; line-height: 1.2; margin: 0 0 18px; }
+  .challenge .slot { color: var(--red); }
+  .specs { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 0 0 18px; padding: 0; list-style: none; }
+  .specs li { border-left: 4px solid var(--red); padding: 4px 0 4px 12px; }
+  .specs b { display: block; font-size: 13px; color: var(--muted); font-weight: bold; }
+  .show {
+    background: var(--soft); padding: 12px 14px; font-size: 15px; margin-bottom: 18px;
+  }
+  .show strong { color: var(--red); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  button {
+    font: bold 16px Arial, Helvetica, sans-serif; cursor: pointer;
+    background: var(--ink); color: var(--paper); border: 2px solid var(--ink);
+    padding: 10px 18px;
+  }
+  button.alt { background: transparent; color: var(--ink); }
+  button:hover { background: var(--red); border-color: var(--red); color: #FFFFFF; }
+  button:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
+  .note { font-size: 13px; color: var(--muted); margin-top: 14px; }
+  .flash { animation: flash .35s ease-out; }
+  @keyframes flash { from { opacity: .2; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .flash { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ruler" aria-hidden="true"></div>
+  <div class="card" id="card" aria-live="polite">
+    <span class="mode" id="mode">Build it in cardboard</span>
+    <p class="challenge" id="challenge"></p>
+    <ul class="specs">
+      <li><b>The twist</b><span id="twist"></span></li>
+      <li><b>Measurement rule</b><span id="measure"></span></li>
+    </ul>
+    <div class="show" id="show"></div>
+    <div class="row">
+      <button id="again" type="button">New challenge</button>
+      <button id="swap" class="alt" type="button">Switch to sketch</button>
+    </div>
+    <p class="note">Scissors, tape, and cardboard scraps are fair game. Ask before using the Zip Snip or hot glue.</p>
+  </div>
+</div>
+
+<script>
+const objects = [
+  "a phone stand", "a pencil holder", "a bridge", "a desk organizer", "a marble run section",
+  "a box with a lid that opens", "a trophy", "a doorstop", "a tower", "a chair",
+  "a bird feeder", "a hat", "a shelf for one small object", "a launcher", "a lamp shade",
+  "a gate that swings", "a boat", "a mask", "a mailbox", "a vehicle with wheels"
+];
+const users = [
+  "a snail in a hurry", "a robot on its first day of school", "a very sleepy cat",
+  "an astronaut in zero gravity", "someone who only has one free hand", "a friendly giant",
+  "a mouse who loves music", "a teacher who keeps losing their keys", "a ghost who is afraid of the dark",
+  "a frog who wants to stay dry", "a dragon with tiny arms", "a toddler who breaks everything",
+  "a spy who needs to hide things", "a penguin on vacation", "the world's tallest person"
+];
+const twists = [
+  "It has to fold flat when you're done using it.",
+  "It must have at least one moving part.",
+  "No tape allowed. Use slots and tabs only.",
+  "It has to hold up a textbook without collapsing.",
+  "It must use a lever somewhere in the design.",
+  "It has to be taller than it is wide.",
+  "It has to balance without leaning on anything.",
+  "It must be built from exactly 4 pieces.",
+  "It has to work upside down, too.",
+  "It needs a hidden compartment.",
+  "Someone should be able to use it with their eyes closed.",
+  "It has to fit inside a shoebox."
+];
+const measures = [
+  "It must be exactly 15 cm tall.",
+  "Its footprint can't be bigger than 10 cm × 10 cm.",
+  "Every edge has to be a whole number of centimeters.",
+  "One part has to be exactly 4 1/2 inches long.",
+  "It must be exactly 6 3/4 inches wide.",
+  "Every piece has to be a multiple of 2 cm.",
+  "The tallest point must be exactly 3 1/4 inches off the table.",
+  "Two parts must be exactly the same length, measured to the millimeter.",
+  "It must be exactly 120 mm long.",
+  "No piece can be shorter than 1 1/2 inches or longer than 5 inches."
+];
+const shows = {
+  build: "<strong>Show your work:</strong> measure your finished build and write down three measurements, with units. Check one with a partner's ruler.",
+  sketch: "<strong>Show your work:</strong> label at least three measurements on your sketch, with units. Draw your key lines with a ruler, not freehand."
+};
+
+let mode = "build";
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const el = id => document.getElementById(id);
+
+function render(newPrompt) {
+  if (newPrompt) {
+    el("challenge").innerHTML =
+      `Design <span class="slot">${pick(objects)}</span> for <span class="slot">${pick(users)}</span>.`;
+    el("twist").textContent = pick(twists);
+    el("measure").textContent = pick(measures);
+  }
+  el("mode").textContent = mode === "build" ? "Build it in cardboard" : "Sketch it on paper";
+  el("swap").textContent = mode === "build" ? "Switch to sketch" : "Switch to cardboard";
+  el("show").innerHTML = shows[mode];
+  const c = el("card"); c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash");
+}
+
+el("again").addEventListener("click", () => render(true));
+el("swap").addEventListener("click", () => { mode = mode === "build" ? "sketch" : "build"; render(false); });
+render(true);
+</script>
+</body>
+</html>
