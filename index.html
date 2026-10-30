@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checklist</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 4px; font-family: 'Proxima Nova', Arial, sans-serif; color: #1a1a1a; background: transparent; }
+  .item { display: flex; align-items: center; gap: 12px; background: #fff; border: 2px solid #eee; border-radius: 10px; padding: 10px 14px; margin: 0 0 8px 0; cursor: pointer; user-select: none; font-size: 16px; line-height: 1.4; }
+  .item:hover { border-color: #d9b3b9; }
+  .item input { position: absolute; opacity: 0; pointer-events: none; }
+  .box { flex: none; width: 20px; height: 20px; border: 2px solid #A6192E; border-radius: 4px; display: grid; place-items: center; background: #fff; }
+  .box svg { width: 14px; height: 14px; opacity: 0; }
+  .item input:checked ~ .box { background: #A6192E; }
+  .item input:checked ~ .box svg { opacity: 1; }
+  .item input:checked ~ .text { color: #888; text-decoration: line-through; }
+  .item input:focus-visible ~ .box { outline: 3px solid #1a1a1a; outline-offset: 2px; }
+  .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 14px; color: #444; }
+  .done { font-weight: bold; color: #A6192E; }
+  button { font: inherit; font-size: 14px; background: none; border: 2px solid #1a1a1a; border-radius: 30px; padding: 5px 14px; cursor: pointer; color: #1a1a1a; }
+  button:hover { background: #1a1a1a; color: #fff; }
+</style>
+</head>
+<body>
+<div id="list"></div>
+<div class="foot"><span id="count"></span><button id="clear" type="button">Clear all</button></div>
+
+<script>
+// Add more checklists here. Pick one with ?list=name in the URL.
+const LISTS = {
+  portfolio: [
+    "My header box is filled in: name, block, group, project.",
+    "Every gray box has my own answer in it.",
+    "Every orange box is replaced with my own photo.",
+    "Every video link opens for someone else.",
+    "Every self-assessment row says Meeting or Not Yet Meeting.",
+    "No questions were changed or deleted."
+  ]
+};
+
+const name = new URLSearchParams(location.search).get("list") || "portfolio";
+const items = LISTS[name] || LISTS.portfolio;
+const key = "saas-checklist-" + name;
+let saved = [];
+try { saved = JSON.parse(localStorage.getItem(key)) || []; } catch (e) {}
+const save = () => { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} };
+let state = items.map((_, i) => !!saved[i]);
+
+const check = '<svg viewBox="0 0 14 14"><path d="M2 7.5l3 3 7-7" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const listEl = document.getElementById("list");
+const countEl = document.getElementById("count");
+
+function render() {
+  listEl.innerHTML = items.map((t, i) =>
+    `<label class="item"><input type="checkbox" data-i="${i}" ${state[i] ? "checked" : ""}><span class="box">${check}</span><span class="text">${t}</span></label>`
+  ).join("");
+  update();
+}
+function update() {
+  const n = state.filter(Boolean).length;
+  countEl.innerHTML = n === items.length ? '<span class="done">All done. Turn it in.</span>' : `${n} of ${items.length} checked`;
+}
+listEl.addEventListener("change", e => {
+  state[+e.target.dataset.i] = e.target.checked; save(); update();
+});
+document.getElementById("clear").addEventListener("click", () => {
+  state = items.map(() => false); save(); render();
+});
+render();
+</script>
+</body>
+</html>
